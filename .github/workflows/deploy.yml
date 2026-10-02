@@ -77,5 +77,11 @@ jobs:
             nginx -t
             systemctl reload nginx
             if [ ! -f /etc/letsencrypt/live/track.diabalance.ru/fullchain.pem ]; then
-              certbot --nginx -d track.diabalance.ru --non-interactive --agree-tos --redirect
+              if getent hosts track.diabalance.ru >/dev/null 2>&1; then
+                certbot --nginx -d track.diabalance.ru --non-interactive --agree-tos --redirect
+              else
+                echo "DNS для track.diabalance.ru ещё нет (NXDOMAIN)."
+                echo "Добавь в Cloudflare A-запись: track → 31.177.83.170"
+                echo "Потом перезапусти Action или на сервере: certbot --nginx -d track.diabalance.ru --non-interactive --agree-tos --redirect"
+              fi
             fi
