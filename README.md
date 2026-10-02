@@ -4,4 +4,6 @@
 
 Сайт: https://track.diabal.ru
 
+Данные в общей SQLite-базе на сервере (синхрон между устройствами).
+
 Документация: [docs/README.md](docs/README.md)

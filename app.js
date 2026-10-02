@@ -1,5 +1,7 @@
 (function () {
-  const KEY = "track.habits.v1";
+  const LEGACY_KEY = "track.habits.v1";
+  const TOKEN_KEY = "track.token.v1";
+  const API = "/api";
   const WEEKDAYS = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
   const MONTHS = [
     "января", "февраля", "марта", "апреля", "мая", "июня",
@@ -14,6 +16,10 @@
   let view = "today";
   let selected = strip(new Date());
   let calCursor = new Date(selected.getFullYear(), selected.getMonth(), 1);
+  let cache = {};
+  let token = localStorage.getItem(TOKEN_KEY) || "";
+  let bootError = "";
+  let saving = false;
 
   function strip(d) {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -26,33 +32,82 @@
     return `${y}-${m}-${day}`;
   }
 
-  function load() {
-    try {
-      return JSON.parse(localStorage.getItem(KEY) || "{}");
-    } catch (e) {
-      return {};
-    }
+  function authHeaders() {
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
   }
 
-  function save(data) {
-    localStorage.setItem(KEY, JSON.stringify(data));
+  async function api(path, options) {
+    const res = await fetch(API + path, options);
+    if (res.status === 401) {
+      token = "";
+      localStorage.removeItem(TOKEN_KEY);
+      throw new Error("unauthorized");
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `http_${res.status}`);
+    }
+    if (res.status === 204) return null;
+    return res.json();
   }
 
   function dayData(date) {
-    const all = load();
-    const k = keyOf(date);
-    return all[k] || {};
+    return cache[keyOf(date)] || {};
   }
 
-  function setTask(date, id, done) {
-    const all = load();
+  async function setTask(date, id, done) {
     const k = keyOf(date);
-    const row = all[k] || {};
-    if (done) row[id] = true;
-    else delete row[id];
-    if (Object.keys(row).length) all[k] = row;
-    else delete all[k];
-    save(all);
+    const prev = { ...(cache[k] || {}) };
+    const next = { ...prev };
+    if (done) next[id] = true;
+    else delete next[id];
+    if (Object.keys(next).length) cache[k] = next;
+    else delete cache[k];
+    render();
+    saving = true;
+    try {
+      await api(`/habits/${encodeURIComponent(k)}/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({ done }),
+      });
+    } catch (err) {
+      if (Object.keys(prev).length) cache[k] = prev;
+      else delete cache[k];
+      bootError = "Не удалось сохранить. Проверь сеть.";
+      render();
+      throw err;
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function pullHabits() {
+    cache = await api("/habits", { headers: authHeaders() });
+    if (!cache || typeof cache !== "object") cache = {};
+  }
+
+  async function migrateLegacyIfNeeded() {
+    let legacy = {};
+    try {
+      legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || "{}");
+    } catch (e) {
+      legacy = {};
+    }
+    if (!legacy || !Object.keys(legacy).length) return;
+    if (Object.keys(cache).length) {
+      localStorage.removeItem(LEGACY_KEY);
+      return;
+    }
+    cache = await api("/habits", {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify(legacy),
+    });
+    localStorage.removeItem(LEGACY_KEY);
   }
 
   function isWeekend(date) {
@@ -394,16 +449,92 @@
     );
   }
 
-  function render() {
-    if (view === "calendar") app.innerHTML = renderCalendar();
-    else if (view === "stats") app.innerHTML = renderStats();
-    else app.innerHTML = renderToday();
+  function renderLogin(error) {
+    return (
+      '<section class="login">' +
+        "<h1>Track</h1>" +
+        "<p>Один PIN на все устройства — данные в общей базе.</p>" +
+        '<form class="login-form" data-login>' +
+          '<input type="password" name="pin" inputmode="numeric" autocomplete="current-password" placeholder="PIN" maxlength="32" required>' +
+          '<button type="submit">Войти</button>' +
+        "</form>" +
+        (error ? `<p class="login-error">${esc(error)}</p>` : "") +
+      "</section>"
+    );
   }
+
+  function renderBoot(message) {
+    return `<section class="login"><h1>Track</h1><p>${esc(message)}</p></section>`;
+  }
+
+  function render() {
+    if (!token) {
+      app.innerHTML = renderLogin(bootError);
+      return;
+    }
+    const banner = bootError
+      ? `<p class="sync-error">${esc(bootError)}</p>`
+      : saving
+        ? '<p class="sync-ok">Сохраняю…</p>'
+        : "";
+    if (view === "calendar") app.innerHTML = banner + renderCalendar();
+    else if (view === "stats") app.innerHTML = banner + renderStats();
+    else app.innerHTML = banner + renderToday();
+  }
+
+  async function boot() {
+    if (!token) {
+      render();
+      return;
+    }
+    app.innerHTML = renderBoot("Загружаю…");
+    try {
+      await pullHabits();
+      await migrateLegacyIfNeeded();
+      bootError = "";
+      render();
+    } catch (err) {
+      if (String(err.message) === "unauthorized") {
+        bootError = "Нужен PIN";
+        render();
+        return;
+      }
+      bootError = "Нет связи с сервером";
+      render();
+    }
+  }
+
+  app.addEventListener("submit", async (e) => {
+    const form = e.target.closest("[data-login]");
+    if (!form) return;
+    e.preventDefault();
+    const pin = String(new FormData(form).get("pin") || "").trim();
+    bootError = "";
+    app.innerHTML = renderBoot("Вхожу…");
+    try {
+      const data = await api("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      token = data.token;
+      localStorage.setItem(TOKEN_KEY, token);
+      await pullHabits();
+      await migrateLegacyIfNeeded();
+      render();
+    } catch (err) {
+      bootError = "Неверный PIN";
+      token = "";
+      localStorage.removeItem(TOKEN_KEY);
+      render();
+    }
+  });
 
   app.addEventListener("click", (e) => {
     const viewBtn = e.target.closest("[data-view]");
     if (viewBtn) {
       view = viewBtn.getAttribute("data-view");
+      bootError = "";
       render();
       return;
     }
@@ -445,10 +576,9 @@
     if (task) {
       const id = task.getAttribute("data-task");
       const done = !dayData(selected)[id];
-      setTask(selected, id, done);
-      render();
+      setTask(selected, id, done).catch(() => {});
     }
   });
 
-  render();
+  boot();
 })();

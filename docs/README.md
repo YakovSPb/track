@@ -16,13 +16,19 @@
 | Работа 350к | пн–чт: вопросы 15:00 + лайфкод 16:00; пт: поиск 15:00–17:00; выходные: 2ч + 2ч |
 | Режим | зарядка + отбой до 22:00 |
 
-Данные хранятся в `localStorage` браузера (`track.habits.v1`).
+## Хранение
+
+Данные в SQLite на сервере (`/var/lib/track/track.db`), API `track-api` (pm2, порт `3010`).
+
+Вход по PIN (по умолчанию `111`, env `TRACK_PIN`). PIN хранится в браузере как токен; галочки синхронизируются между устройствами.
+
+Старый `localStorage` один раз мигрирует в базу при первом входе, если сервер пустой.
 
 ## Деплой
 
-GitHub Actions: push в `main` → SCP в `/var/www/track.diabal.ru` → nginx + certbot.
+GitHub Actions: push в `main` → SCP статики + `server/` → `npm install` → pm2 → nginx `/api/` → certbot.
 
-Секреты репозитория (как у `health` / zal):
+Секреты репозитория:
 
 - `SERVER_HOST`
 - `SERVER_USERNAME`
