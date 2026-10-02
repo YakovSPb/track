@@ -40,7 +40,7 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "index.html,app.css,app.js,manifest.json,assets"
-          target: /var/www/track.diabalance.ru/
+          target: /var/www/track.diabal.ru/
           overwrite: true
           rm: true
 
@@ -55,15 +55,19 @@ jobs:
           command_timeout: 10m
           script: |
             set -euo pipefail
-            mkdir -p /var/www/track.diabalance.ru
-            CONF=/etc/nginx/sites-available/track.diabalance.ru
+            mkdir -p /var/www/track.diabal.ru
+            # убрать ошибочный vhost diabalance.ru
+            rm -f /etc/nginx/sites-enabled/track.diabalance.ru
+            rm -f /etc/nginx/sites-available/track.diabalance.ru
+            rm -rf /var/www/track.diabalance.ru
+            CONF=/etc/nginx/sites-available/track.diabal.ru
             if [ ! -f "$CONF" ]; then
               printf '%s\n' \
                 'server {' \
                 '    listen 80;' \
                 '    listen [::]:80;' \
-                '    server_name track.diabalance.ru;' \
-                '    root /var/www/track.diabalance.ru;' \
+                '    server_name track.diabal.ru;' \
+                '    root /var/www/track.diabal.ru;' \
                 '    index index.html;' \
                 '    location / {' \
                 '        try_files $uri $uri/ /index.html;' \
@@ -72,16 +76,10 @@ jobs:
                 '        add_header Cache-Control "no-cache";' \
                 '    }' \
                 '}' > "$CONF"
-              ln -sfn "$CONF" /etc/nginx/sites-enabled/track.diabalance.ru
+              ln -sfn "$CONF" /etc/nginx/sites-enabled/track.diabal.ru
             fi
             nginx -t
             systemctl reload nginx
-            if [ ! -f /etc/letsencrypt/live/track.diabalance.ru/fullchain.pem ]; then
-              if getent hosts track.diabalance.ru >/dev/null 2>&1; then
-                certbot --nginx -d track.diabalance.ru --non-interactive --agree-tos --redirect
-              else
-                echo "DNS для track.diabalance.ru ещё нет (NXDOMAIN)."
-                echo "Добавь в Cloudflare A-запись: track → 31.177.83.170"
-                echo "Потом перезапусти Action или на сервере: certbot --nginx -d track.diabalance.ru --non-interactive --agree-tos --redirect"
-              fi
+            if [ ! -f /etc/letsencrypt/live/track.diabal.ru/fullchain.pem ]; then
+              certbot --nginx -d track.diabal.ru --non-interactive --agree-tos --redirect
             fi

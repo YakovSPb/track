@@ -1,6 +1,6 @@
 # Track — трекер привычек
 
-Личный трекер на `track.diabalance.ru`.
+Личный трекер на `track.diabal.ru`.
 
 ## Экраны
 
@@ -20,7 +20,7 @@
 
 ## Деплой
 
-GitHub Actions: push в `main` → SCP в `/var/www/track.diabalance.ru` → nginx + certbot.
+GitHub Actions: push в `main` → SCP в `/var/www/track.diabal.ru` → nginx + certbot.
 
 Секреты репозитория (как у `health` / zal):
 
