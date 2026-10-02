@@ -1,0 +1,10 @@
+{
+  "name": "Track",
+  "short_name": "Track",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1412",
+  "theme_color": "#0f1412",
+  "lang": "ru",
+  "icons": []
+}

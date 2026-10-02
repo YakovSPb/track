@@ -1,0 +1,81 @@
+name: Deploy track
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check secrets
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          USER: ${{ secrets.SERVER_USERNAME }}
+          PORT: ${{ secrets.SERVER_PORT }}
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -e
+          missing=
+          [ -n "$HOST" ] || missing="$missing SERVER_HOST"
+          [ -n "$USER" ] || missing="$missing SERVER_USERNAME"
+          [ -n "$PORT" ] || missing="$missing SERVER_PORT"
+          [ -n "$KEY" ] || missing="$missing SSH_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "Пустые секреты:$missing"
+            echo "Добавь их в YakovSPb/track → Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          echo "Секреты на месте. Длина ключа: ${#KEY}"
+
+      - name: Upload site
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          port: ${{ secrets.SERVER_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "index.html,app.css,app.js,manifest.json,assets"
+          target: /var/www/track.diabalance.ru/
+          overwrite: true
+          rm: true
+
+      - name: Nginx and SSL
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          port: ${{ secrets.SERVER_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 120s
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            mkdir -p /var/www/track.diabalance.ru
+            CONF=/etc/nginx/sites-available/track.diabalance.ru
+            if [ ! -f "$CONF" ]; then
+              printf '%s\n' \
+                'server {' \
+                '    listen 80;' \
+                '    listen [::]:80;' \
+                '    server_name track.diabalance.ru;' \
+                '    root /var/www/track.diabalance.ru;' \
+                '    index index.html;' \
+                '    location / {' \
+                '        try_files $uri $uri/ /index.html;' \
+                '    }' \
+                '    location = /index.html {' \
+                '        add_header Cache-Control "no-cache";' \
+                '    }' \
+                '}' > "$CONF"
+              ln -sfn "$CONF" /etc/nginx/sites-enabled/track.diabalance.ru
+            fi
+            nginx -t
+            systemctl reload nginx
+            if [ ! -f /etc/letsencrypt/live/track.diabalance.ru/fullchain.pem ]; then
+              certbot --nginx -d track.diabalance.ru --non-interactive --agree-tos --redirect
+            fi
