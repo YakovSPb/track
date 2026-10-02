@@ -74,23 +74,22 @@
     const job = [];
     if (isWeekend(date)) {
       job.push(
-        { id: "job.questions", group: "job", time: "10:00", label: "Вопросы", sub: "2 часа · собесы" },
-        { id: "job.livecoding", group: "job", time: "13:00", label: "Лайфкодинг", sub: "2 часа · руками" },
+        { id: "job.questions", group: "job", time: "15:00", label: "Вопросы", sub: "2 часа · собесы" },
+        { id: "job.livecoding", group: "job", time: "17:00", label: "Лайфкодинг", sub: "2 часа · руками" },
       );
+    } else if (isFriday(date)) {
+      job.push({
+        id: "job.search",
+        group: "job",
+        time: "15:00",
+        label: "Поиск работы",
+        sub: "15:00–17:00 · отклики и сеть",
+      });
     } else {
       job.push(
-        { id: "job.questions", group: "job", time: "09:00", label: "Вопросы", sub: "1 час · теория" },
-        { id: "job.livecoding", group: "job", time: "10:00", label: "Лайфкодинг", sub: "1 час · практика" },
+        { id: "job.questions", group: "job", time: "15:00", label: "Вопросы", sub: "1 час · теория" },
+        { id: "job.livecoding", group: "job", time: "16:00", label: "Лайфкодинг", sub: "1 час · практика" },
       );
-      if (isFriday(date)) {
-        job.push({
-          id: "job.search",
-          group: "job",
-          time: "15:00",
-          label: "Поиск работы",
-          sub: "2 часа · отклики и сеть",
-        });
-      }
     }
 
     const mode = [
@@ -186,8 +185,8 @@
     const jobWhy = isWeekend(selected)
       ? "Выходные: 4 часа — вопросы + лайфкодинг. Это инвестиция в оффер."
       : isFriday(selected)
-        ? "Пятница: теория, практика и 2 часа поиска. Двигаешь воронку."
-        : "Будни: 1 час вопросы + 1 час лайфкодинг. Каждый день ближе к 350 000 ₽.";
+        ? "Пятница: только поиск работы 15:00–17:00. Двигаешь воронку."
+        : "Будни: вопросы в 15:00, лайфкод в 16:00. Каждый день ближе к 350 000 ₽.";
 
     return (
       '<header class="top">' +
