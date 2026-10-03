@@ -68,4 +68,18 @@ jobs:
             if [ ! -f /etc/letsencrypt/live/track.diabal.ru/fullchain.pem ]; then
               certbot --nginx -d track.diabal.ru --non-interactive --agree-tos --redirect
             fi
+            ok=
+            for i in $(seq 1 20); do
+              if curl -fsS http://127.0.0.1:3010/health >/dev/null 2>&1; then
+                ok=1
+                break
+              fi
+              sleep 1
+            done
+            if [ -z "$ok" ]; then
+              echo "track-api не ответил на :3010"
+              pm2 logs track-api --lines 30 --nostream || true
+              exit 1
+            fi
             curl -fsS http://127.0.0.1:3010/health
+            echo
