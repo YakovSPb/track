@@ -110,15 +110,6 @@
     localStorage.removeItem(LEGACY_KEY);
   }
 
-  function isWeekend(date) {
-    const d = date.getDay();
-    return d === 0 || d === 6;
-  }
-
-  function isFriday(date) {
-    return date.getDay() === 5;
-  }
-
   function tasksFor(date) {
     const food = [
       { id: "food.breakfast", group: "food", time: "08:00", label: "Завтрак", sub: "Съел осознанно" },
@@ -126,26 +117,10 @@
       { id: "food.dinner", group: "food", time: "19:00", label: "Ужин", sub: "Лёгкий финиш дня" },
     ];
 
-    const job = [];
-    if (isWeekend(date)) {
-      job.push(
-        { id: "job.questions", group: "job", time: "15:00", label: "Вопросы", sub: "2 часа · собесы" },
-        { id: "job.livecoding", group: "job", time: "17:00", label: "Лайфкодинг", sub: "2 часа · руками" },
-      );
-    } else if (isFriday(date)) {
-      job.push({
-        id: "job.search",
-        group: "job",
-        time: "15:00",
-        label: "Поиск работы",
-        sub: "15:00–17:00 · отклики и сеть",
-      });
-    } else {
-      job.push(
-        { id: "job.questions", group: "job", time: "15:00", label: "Вопросы", sub: "1 час · теория" },
-        { id: "job.livecoding", group: "job", time: "16:00", label: "Лайфкодинг", sub: "1 час · практика" },
-      );
-    }
+    const job = [
+      { id: "job.questions", group: "job", time: "15:00", label: "Вопросы", sub: "1 час · теория" },
+      { id: "job.livecoding", group: "job", time: "16:00", label: "Лайфкодинг", sub: "1 час · практика" },
+    ];
 
     const mode = [
       { id: "mode.exercise", group: "mode", time: "07:00", label: "Зарядка", sub: "Тело включено" },
@@ -237,11 +212,7 @@
     const mode = tasks.filter((t) => t.group === "mode");
     const isToday = keyOf(selected) === keyOf(new Date());
 
-    const jobWhy = isWeekend(selected)
-      ? "Выходные: 4 часа — вопросы + лайфкодинг. Это инвестиция в оффер."
-      : isFriday(selected)
-        ? "Пятница: только поиск работы 15:00–17:00. Двигаешь воронку."
-        : "Будни: вопросы в 15:00, лайфкод в 16:00. Каждый день ближе к 350 000 ₽.";
+    const jobWhy = "Каждый день: вопросы 15:00 + лайфкод 16:00. Шаг к офферу на 350 000 ₽.";
 
     return (
       '<header class="top">' +
