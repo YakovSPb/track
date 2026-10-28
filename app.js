@@ -255,6 +255,12 @@
       "</section>" +
 
       '<section class="section">' +
+        '<div class="section-head"><h2>Режим</h2><span class="tag">зарядка + сон</span></div>' +
+        mode.map((t) => taskButton(t, !!doneMap[t.id])).join("") +
+        '<p class="hint">Зарядка утром и отбой до 22:00 — один контур энергии. Без него еда и работа сыпятся.</p>' +
+      "</section>" +
+
+      '<section class="section">' +
         '<div class="section-head"><h2>Еда</h2><span class="tag">здоровье</span></div>' +
         '<div class="motivate">' +
           '<img src="assets/arni.jpg" width="64" height="64" alt="Арнольд Шварценеггер">' +
@@ -276,18 +282,18 @@
         "</div>" +
         job.map((t) => taskButton(t, !!doneMap[t.id])).join("") +
       "</section>" +
-
-      '<section class="section">' +
-        '<div class="section-head"><h2>Режим</h2><span class="tag">зарядка + сон</span></div>' +
-        mode.map((t) => taskButton(t, !!doneMap[t.id])).join("") +
-        '<p class="hint">Зарядка утром и отбой до 22:00 — один контур энергии. Без него еда и работа сыпятся.</p>' +
-      "</section>" +
       navHtml()
     );
   }
 
   function daysInMonth(year, month) {
     return new Date(year, month + 1, 0).getDate();
+  }
+
+  function groupDot(group, name) {
+    const ratio = group.total ? group.done / group.total : 0;
+    if (!ratio) return "<i></i>";
+    return `<i class="on ${name}" style="--p:${ratio.toFixed(2)}"></i>`;
   }
 
   function renderCalendar() {
@@ -318,16 +324,16 @@
         `<button type="button" class="${cls}" data-pick="${k}">` +
           `<span class="d">${d}</span>` +
           '<span class="dots">' +
-            `<i class="${g.food.done === g.food.total && g.food.total ? "on food" : ""}"></i>` +
-            `<i class="${g.job.done === g.job.total && g.job.total ? "on job" : ""}"></i>` +
-            `<i class="${g.mode.done === g.mode.total && g.mode.total ? "on mode" : ""}"></i>` +
+            groupDot(g.food, "food") +
+            groupDot(g.job, "job") +
+            groupDot(g.mode, "mode") +
           "</span>" +
         "</button>";
     }
 
     return (
       '<header class="top">' +
-        '<div class="brand"><h1>Календарь</h1><p>Точки — закрытые блоки дня</p></div>' +
+        '<div class="brand"><h1>Календарь</h1><p>Точки — прогресс блоков (яркость = %)</p></div>' +
       "</header>" +
       '<div class="cal-head">' +
         `<h2>${MONTH_TITLES[m]} ${y}</h2>` +

@@ -469,15 +469,24 @@ button {
 }
 
 .day-cell .dots i {
+  --p: 0;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--line);
 }
 
-.day-cell .dots i.on.food { background: var(--food); }
-.day-cell .dots i.on.job { background: var(--job); }
-.day-cell .dots i.on.mode { background: var(--mode); }
+.day-cell .dots i.on.food {
+  background: color-mix(in srgb, var(--food) calc(var(--p) * 100%), var(--line));
+}
+
+.day-cell .dots i.on.job {
+  background: color-mix(in srgb, var(--job) calc(var(--p) * 100%), var(--line));
+}
+
+.day-cell .dots i.on.mode {
+  background: color-mix(in srgb, var(--mode) calc(var(--p) * 100%), var(--line));
+}
 
 .day-cell.today {
   border-color: color-mix(in srgb, var(--ok) 55%, var(--line));
