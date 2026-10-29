@@ -221,7 +221,8 @@
     const tasks = tasksFor(selected);
     const food = tasks.filter((t) => t.group === "food");
     const job = tasks.filter((t) => t.group === "job");
-    const mode = tasks.filter((t) => t.group === "mode");
+    const exercise = tasks.find((t) => t.id === "mode.exercise");
+    const sleep = tasks.find((t) => t.id === "mode.sleep");
     const isToday = keyOf(selected) === keyOf(new Date());
 
     const jobWhy = isWeekend(selected)
@@ -254,11 +255,13 @@
         "</div>" +
       "</section>" +
 
-      '<section class="section">' +
-        '<div class="section-head"><h2>Режим</h2><span class="tag">зарядка + сон</span></div>' +
-        mode.map((t) => taskButton(t, !!doneMap[t.id])).join("") +
-        '<p class="hint">Зарядка утром и отбой до 22:00 — один контур энергии. Без него еда и работа сыпятся.</p>' +
-      "</section>" +
+      (exercise
+        ? '<section class="section">' +
+            '<div class="section-head"><h2>Зарядка</h2><span class="tag">утро</span></div>' +
+            taskButton(exercise, !!doneMap[exercise.id]) +
+            '<p class="hint">Тело включено — дальше день идёт ровнее.</p>' +
+          "</section>"
+        : "") +
 
       '<section class="section">' +
         '<div class="section-head"><h2>Еда</h2><span class="tag">здоровье</span></div>' +
@@ -282,6 +285,14 @@
         "</div>" +
         job.map((t) => taskButton(t, !!doneMap[t.id])).join("") +
       "</section>" +
+
+      (sleep
+        ? '<section class="section">' +
+            '<div class="section-head"><h2>Сон</h2><span class="tag">до 22:00</span></div>' +
+            taskButton(sleep, !!doneMap[sleep.id]) +
+            '<p class="hint">Отбой до 22:00 закрывает день. Без него зарядка и еда сыпятся.</p>' +
+          "</section>"
+        : "") +
       navHtml()
     );
   }
